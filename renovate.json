@@ -1,0 +1,94 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Automated Go module updates. Mirrors .github/dependabot.yml: weekly, patch-only for the Kubernetes/OpenShift ecosystem, updates grouped to reduce PR noise. The k8s.io staging modules are grouped separately because they must share one version; hack/verify-k8s-deps.sh enforces that.",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["gomod"],
+  "timezone": "Europe/Prague",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 2,
+  "rangeStrategy": "bump",
+  "postUpdateOptions": ["gomodTidy"],
+  "semanticCommits": "disabled",
+  "commitMessagePrefix": "NO-JIRA: chore(deps):",
+  "assignees": ["jmencak"],
+  "packageRules": [
+    {
+      "description": "Also update indirect dependencies, so the k8s staging set can move as a whole.",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
+      "enabled": true
+    },
+    {
+      "description": "Never bump major versions automatically.",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "The pinned ginkgo fork is required for openshift-tests-extension compatibility; bump it manually.",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": [
+        "github.com/onsi/ginkgo/v2",
+        "github.com/openshift/onsi-ginkgo/v2"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Kubernetes/OpenShift ecosystem: patch updates only, minor and major versions have breaking API changes.",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": [
+        "k8s.io/**",
+        "sigs.k8s.io/**",
+        "github.com/openshift/**",
+        "github.com/openshift-kni/**"
+      ],
+      "matchUpdateTypes": ["minor", "major"],
+      "enabled": false
+    },
+    {
+      "description": "k8s.io staging libraries are released in lockstep from kubernetes/kubernetes and must share one version, so keep them in a dedicated PR. klog, utils, kube-openapi and gengo version independently and are excluded. Renovate cannot enforce equal versions (renovatebot/renovate#12310), so hack/verify-k8s-deps.sh checks the result.",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": [
+        "k8s.io/**",
+        "!k8s.io/klog",
+        "!k8s.io/klog/**",
+        "!k8s.io/utils",
+        "!k8s.io/utils/**",
+        "!k8s.io/kube-openapi",
+        "!k8s.io/kube-openapi/**",
+        "!k8s.io/gengo",
+        "!k8s.io/gengo/**"
+      ],
+      "groupName": "kubernetes-staging"
+    },
+    {
+      "description": "Group independently versioned k8s tooling and the remaining Kubernetes/OpenShift patch updates into one PR.",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": [
+        "k8s.io/klog",
+        "k8s.io/klog/**",
+        "k8s.io/utils",
+        "k8s.io/utils/**",
+        "k8s.io/kube-openapi",
+        "k8s.io/kube-openapi/**",
+        "k8s.io/gengo",
+        "k8s.io/gengo/**",
+        "sigs.k8s.io/**",
+        "github.com/openshift/**",
+        "github.com/openshift-kni/**"
+      ],
+      "groupName": "k8s-ecosystem"
+    },
+    {
+      "description": "Group all remaining minor and patch updates into one PR. A list of only negative patterns matches everything else, so no leading \"*\" is needed (and Renovate rejects it).",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": [
+        "!k8s.io/**",
+        "!sigs.k8s.io/**",
+        "!github.com/openshift/**",
+        "!github.com/openshift-kni/**"
+      ],
+      "groupName": "catch-all"
+    }
+  ]
+}
